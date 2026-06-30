@@ -8,13 +8,22 @@ interface Menu {
   kategori: string;
 }
 
+interface Transaksi {
+  id: string;
+  waktu: string;
+  items: { nama: string; jumlah: number; harga: number }[];
+  total: number;
+  status: "Sukses" | "Refund";
+}
+
 export default function KasirJossGandos() {
   const [search, setSearch] = useState("");
   const [kategoriTerpilih, setKategoriTerpilih] = useState("Semua");
   const [keranjang, setKeranjang] = useState<{ menu: Menu; jumlah: number }[]>([]);
+  const [riwayatTransaksi, setRiwayatTransaksi] = useState<Transaksi[]>([]);
 
   const daftarMenu: Menu[] = [
-    // --- KATEGORI: MAKANAN (Gabungan Bakso, Mie Ayam, Ayam, Bebek, & Extra) ---
+    // --- KATEGORI: MAKANAN ---
     { nama: "Bakso Super Tetelan Joss", harga: 22000, kategori: "Makanan" },
     { nama: "Mie Ayam Tetelan", harga: 20000, kategori: "Makanan" },
     { nama: "Ayam Bakar + Nasi", harga: 25000, kategori: "Makanan" },
@@ -34,7 +43,7 @@ export default function KasirJossGandos() {
     { nama: "Nasi Goreng Telur Dadar/Ceplok", harga: 20000, kategori: "Makanan" },
     { nama: "Mie Goreng Telur Dadar/Ceplok", harga: 20000, kategori: "Makanan" },
     { nama: "Tempe Crispy", harga: 12000, kategori: "Makanan" },
-    { nama: "Tahu Bakso", fontColor: "black", harga: 14000, kategori: "Makanan" },
+    { nama: "Tahu Bakso", harga: 14000, kategori: "Makanan" },
     { nama: "Extra Nasi Putih", harga: 6000, kategori: "Makanan" },
 
     // --- KATEGORI: MINUMAN ---
@@ -46,7 +55,7 @@ export default function KasirJossGandos() {
     { nama: "Cendol Durian (L)", harga: 25000, kategori: "Minuman" },
     { nama: "Es Teler Spesial", harga: 20000, kategori: "Minuman" },
     { nama: "Es Teler Keju", harga: 25000, kategori: "Minuman" },
-    { nama: "Es Kelapa Jeruk", harga: 18000, kategori: "Minuman" },
+    { nama: "Es Kelapa Jeruk", fontColor: "black", harga: 18000, kategori: "Minuman" },
     { nama: "Es Kelapa Gula Aren", harga: 18000, kategori: "Minuman" },
     { nama: "Juss Apokade", harga: 18000, kategori: "Minuman" },
     { nama: "Juss Mangga", harga: 18000, kategori: "Minuman" },
@@ -88,18 +97,78 @@ export default function KasirJossGandos() {
 
   const totalBelanja = keranjang.reduce((total, item) => total + item.menu.harga * item.jumlah, 0);
 
+  const prosesBayar = () => {
+    if (keranjang.length === 0) return;
+
+    const transaksiBaru: Transaksi = {
+      id: "TRX-" + Date.now().toString().slice(-6),
+      waktu: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+      items: keranjang.map((item) => ({
+        nama: item.menu.nama,
+        jumlah: item.jumlah,
+        harga: item.menu.harga,
+      })),
+      total: totalBelanja,
+      status: "Sukses",
+    };
+
+    setRiwayatTransaksi([transaksiBaru, ...riwayatTransaksi]);
+    setKeranjang([]);
+    alert("Transaksi Berhasil disimpan ke Rekapan!");
+  };
+
+  const prosesRefund = (id: string) => {
+    if (confirm("Apakah Anda yakin ingin me-refund transaksi ini?")) {
+      setRiwayatTransaksi((prev) =>
+        prev.map((trx) => (trx.id === id ? { ...trx, status: "Refund" } : trx))
+      );
+    }
+  };
+
+  const cetakStruk = (trx: Transaksi) => {
+    const isiStruk = `
+================================
+          JOSS GANDOZZ          
+   Spesialis Sambal Ijo Batam   
+================================
+ID/Waktu: ${trx.id} / ${trx.waktu}
+Status: ${trx.status}
+--------------------------------
+${trx.items
+  .map((item) => `${item.nama}\n  ${item.jumlah}x Rp ${item.harga.toLocaleString("id-ID")} = Rp ${(item.jumlah * item.harga).toLocaleString("id-ID")}`)
+  .join("\n")}
+--------------------------------
+TOTAL: Rp ${trx.total.toLocaleString("id-ID")}
+================================
+   Terima Kasih Atas Kunjungan  
+        Joss Gandozz Banget!    
+================================
+    `;
+    const win = window.open("", "_blank");
+    if (win) {
+      win.document.write(`<pre style="font-family:monospace; font-size:14px; padding:10px;">${isiStruk}</pre>`);
+      win.document.close();
+      win.print();
+    }
+  };
+
+  const totalPendapatan = riwayatTransaksi
+    .filter((trx) => trx.status === "Sukses")
+    .reduce((sum, trx) => sum + trx.total, 0);
+
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-gray-800">
-      {/* HEADER BAR DENGAN WARNA HIJAU JOSS GANDOS */}
+    <div className="min-h-screen bg-slate-50 font-sans text-gray-800 pb-12">
+      {/* HEADER BAR */}
       <header className="bg-gradient-to-r from-emerald-800 to-green-700 py-6 px-4 text-center shadow-md mb-6 rounded-b-2xl">
-        <h1 className="text-3xl font-black text-white tracking-wider drop-shadow-sm">JOSS GANDOS</h1>
-        <p className="text-xs text-emerald-100 font-medium tracking-wide mt-1 uppercase">Spesialis Sambal Ijo — Aplikasi Kasir Moka</p>
+        <h1 className="text-3xl font-black text-white tracking-wider drop-shadow-sm">JOSS GANDOZZ</h1>
+        <p className="text-xs text-emerald-100 font-medium tracking-wide mt-1 uppercase">Spesialis Sambal Ijo — Aplikasi Kasir Pro</p>
       </header>
 
-      <div className="p-4 max-w-5xl mx-auto">
-        {/* SEARCH BAR & KATEGORI */}
-        <div className="mb-6 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-          <div className="relative">
+      <div className="p-4 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* KIRI & TENGAH: MENU & SEARCH */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* SEARCH BAR & KATEGORI */}
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 space-y-4">
             <input
               type="text"
               placeholder="Cari menu makanan atau minuman..."
@@ -107,36 +176,32 @@ export default function KasirJossGandos() {
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-4 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white transition-all text-sm"
             />
+            <div className="flex flex-wrap gap-2">
+              {kategoriList.map((kat) => (
+                <button
+                  key={kat}
+                  onClick={() => setKategoriTerpilih(kat)}
+                  className={`px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-sm ${
+                    kategoriTerpilih === kat
+                      ? "bg-emerald-700 text-white shadow-emerald-200"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {kat}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {kategoriList.map((kat) => (
-              <button
-                key={kat}
-                onClick={() => setKategoriTerpilih(kat)}
-                className={`px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-sm ${
-                  kategoriTerpilih === kat
-                    ? "bg-emerald-700 text-white shadow-emerald-200"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                {kat}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* DAFTAR MENU */}
-          <div className="md:col-span-2 space-y-4">
+          <div className="space-y-4">
             <h2 className="text-lg font-extrabold text-gray-700 tracking-wide flex items-center gap-2">
               <span className="w-1.5 h-5 bg-emerald-600 rounded-full block"></span>
               Menu Tersedia
             </h2>
-            
             {menuTersaring.length === 0 ? (
               <div className="bg-white rounded-2xl p-8 text-center border border-dashed border-gray-200">
-                <p className="text-gray-400 italic text-sm">Menu tidak ditemukan, coba cari yang lain...</p>
+                <p className="text-gray-400 italic text-sm">Menu tidak ditemukan...</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -163,64 +228,115 @@ export default function KasirJossGandos() {
             )}
           </div>
 
-          {/* STRUK / KERANJANG */}
-          <div className="bg-white p-4 rounded-2xl shadow-md border border-gray-100 h-fit sticky top-4">
-            <h2 className="text-lg font-extrabold text-gray-800 border-b pb-3 mb-4 border-gray-100 text-center tracking-wide">
-              Struk Belanja
-            </h2>
-            
-            {keranjang.length === 0 ? (
-              <div className="py-12 text-center">
-                <p className="text-gray-300 text-sm italic">Belum ada item dipilih</p>
+          {/* SECTION REKAPAN & LAPORAN */}
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h2 className="text-lg font-extrabold text-gray-700 tracking-wide flex items-center gap-2">
+                <span className="w-1.5 h-5 bg-orange-500 rounded-full block"></span>
+                Rekapan & Riwayat Hari Ini
+              </h2>
+              <div className="text-right">
+                <p className="text-xs text-gray-400 uppercase font-bold">Total Omset Bersih</p>
+                <p className="text-xl font-black text-emerald-600">Rp {totalPendapatan.toLocaleString("id-ID")}</p>
               </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="max-h-64 overflow-y-auto space-y-3 pr-1">
-                  {keranjang.map((item) => (
-                    <div key={item.menu.nama} className="flex justify-between items-center text-xs border-b border-gray-50 pb-2">
-                      <div className="flex-1 pr-2">
-                        <p className="font-bold text-gray-800 leading-tight">{item.menu.nama}</p>
-                        <p className="text-[11px] text-gray-400 mt-0.5">
-                          {item.jumlah} x Rp {item.menu.harga.toLocaleString("id-ID")}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1.5 ml-2 bg-gray-50 p-1 rounded-lg border border-gray-100">
-                        <button
-                          onClick={() => kurangiDariKeranjang(item.menu.nama)}
-                          className="bg-white hover:bg-red-50 hover:text-red-600 text-gray-500 font-bold w-5 h-5 rounded-md flex items-center justify-center transition-colors shadow-sm"
-                        >
-                          -
-                        </button>
-                        <span className="font-extrabold text-gray-700 min-w-[16px] text-center">{item.jumlah}</span>
-                        <button
-                          onClick={() => tambahKeKeranjang(item.menu)}
-                          className="bg-white hover:bg-emerald-50 hover:text-emerald-600 text-gray-500 font-bold w-5 h-5 rounded-md flex items-center justify-center transition-colors shadow-sm"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            </div>
 
-                <div className="border-t border-gray-100 pt-3 space-y-3">
-                  <div className="flex justify-between items-center font-black text-base text-gray-800">
-                    <span>Total:</span>
-                    <span className="text-emerald-700 bg-emerald-50 px-3 py-1 rounded-xl">Rp {totalBelanja.toLocaleString("id-ID")}</span>
+            {riwayatTransaksi.length === 0 ? (
+              <p className="text-gray-400 italic text-sm text-center py-4">Belum ada rekapan transaksi masuk.</p>
+            ) : (
+              <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                {riwayatTransaksi.map((trx) => (
+                  <div key={trx.id} className={`p-3 rounded-xl border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs transition-all ${
+                    trx.status === "Refund" ? "bg-red-50/70 border-red-100 line-through text-gray-400" : "bg-gray-50 border-gray-100"
+                  }`}>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-800">{trx.id} ({trx.waktu})</span>
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${
+                          trx.status === "Sukses" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
+                        }`}>{trx.status}</span>
+                      </div>
+                      <p className="mt-1 text-gray-600 font-medium">
+                        {trx.items.map((i) => `${i.nama} (${i.jumlah}x)`).join(", ")}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                      <span className="font-extrabold text-sm text-gray-800 mr-2">Rp {trx.total.toLocaleString("id-ID")}</span>
+                      <button
+                        onClick={() => cetakStruk(trx)}
+                        className="bg-white hover:bg-gray-100 border text-gray-700 font-bold px-2 py-1 rounded-lg text-[11px] shadow-sm"
+                      >
+                        Cetak Struk
+                      </button>
+                      {trx.status === "Sukses" && (
+                        <button
+                          onClick={() => prosesRefund(trx.id)}
+                          className="bg-red-600 hover:bg-red-700 text-white font-bold px-2 py-1 rounded-lg text-[11px] shadow-sm"
+                        >
+                          Refund
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <button
-                    onClick={() => {
-                      alert(`Transaksi Berhasil!\nTotal Belanja: Rp ${totalBelanja.toLocaleString("id-ID")}\nTerima kasih sudah membeli di Joss Gandos!`);
-                      setKeranjang([]);
-                    }}
-                    className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-xl shadow-md shadow-emerald-100 transition-all text-sm uppercase tracking-wider active:scale-[0.99]"
-                  >
-                    Bayar Sekarang
-                  </button>
-                </div>
+                ))}
               </div>
             )}
           </div>
+        </div>
+
+        {/* KANAN: STRUK / KASIR AKTIF */}
+        <div className="bg-white p-4 rounded-2xl shadow-md border border-gray-100 h-fit sticky top-4">
+          <h2 className="text-lg font-extrabold text-gray-800 border-b pb-3 mb-4 border-gray-100 text-center tracking-wide">
+            Order / Kasir Aktif
+          </h2>
+          {keranjang.length === 0 ? (
+            <div className="py-16 text-center">
+              <p className="text-gray-300 text-sm italic">Pilih menu di kiri untuk memasukkan pesanan</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="max-h-72 overflow-y-auto space-y-3 pr-1">
+                {keranjang.map((item) => (
+                  <div key={item.menu.nama} className="flex justify-between items-center text-xs border-b border-gray-50 pb-2">
+                    <div className="flex-1 pr-2">
+                      <p className="font-bold text-gray-800 leading-tight">{item.menu.nama}</p>
+                      <p className="text-[11px] text-gray-400 mt-0.5">
+                        {item.jumlah} x Rp {item.menu.harga.toLocaleString("id-ID")}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 ml-2 bg-gray-50 p-1 rounded-lg border border-gray-100">
+                      <button
+                        onClick={() => kurangiDariKeranjang(item.menu.nama)}
+                        className="bg-white hover:bg-red-50 hover:text-red-600 text-gray-500 font-bold w-5 h-5 rounded-md flex items-center justify-center transition-colors shadow-sm"
+                      >
+                        -
+                      </button>
+                      <span className="font-extrabold text-gray-700 min-w-[16px] text-center">{item.jumlah}</span>
+                      <button
+                        onClick={() => tambahKeKeranjang(item.menu)}
+                        className="bg-white hover:bg-emerald-50 hover:text-emerald-600 text-gray-500 font-bold w-5 h-5 rounded-md flex items-center justify-center transition-colors shadow-sm"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t border-gray-100 pt-3 space-y-3">
+                <div className="flex justify-between items-center font-black text-base text-gray-800">
+                  <span>Total:</span>
+                  <span className="text-emerald-700 bg-emerald-50 px-3 py-1 rounded-xl">Rp {totalBelanja.toLocaleString("id-ID")}</span>
+                </div>
+                <button
+                  onClick={prosesBayar}
+                  className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-xl shadow-md shadow-emerald-100 transition-all text-sm uppercase tracking-wider active:scale-[0.99]"
+                >
+                  Simpan Transaksi
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
